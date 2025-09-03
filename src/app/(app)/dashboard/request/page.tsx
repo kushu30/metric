@@ -1,3 +1,4 @@
+// src/app/(app)/dashboard/request/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -41,13 +42,17 @@ export default function RequestLoanPage() {
     setIsCheckingTerms(true);
     setTerms(null);
     try {
-      const scoreResponse = await fetch("/api/ml/risk-score", { method: "POST" });
+      const scoreResponse = await fetch("/api/ml/risk-score", { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
       if (!scoreResponse.ok) throw new Error("Could not fetch credit score.");
       const { score } = await scoreResponse.json();
 
       let interestRate = 15;
-      if (score >= 80) interestRate = 5;
-      else if (score >= 50) interestRate = 10;
+      if (score >= 750) interestRate = 5;
+      else if (score >= 600) interestRate = 10;
       
       const maxLoanCap = score * 100;
       const totalRepayment = values.amount * (1 + interestRate / 100);
@@ -66,8 +71,6 @@ export default function RequestLoanPage() {
     }
   };
 
-  // --- THE FIX ---
-  // The function now accepts the terms object directly.
   const handleFinalSubmit = async (loanTerms: LoanTerms) => {
     setIsSubmitting(true);
     try {
@@ -79,8 +82,6 @@ export default function RequestLoanPage() {
         creditScore: Number(loanTerms.creditScore),
         interestRate: Number(loanTerms.interestRate),
       };
-
-      console.log("Final data object being sent to API:", loanData);
 
       const response = await fetch("/api/loans/request", {
         method: "POST",
@@ -147,8 +148,6 @@ export default function RequestLoanPage() {
               <p><strong>Interest Rate:</strong> {terms.interestRate}%</p>
               <p><strong>Total Repayment:</strong> ${terms.totalRepayment.toFixed(2)}</p>
               <p className="text-sm text-gray-500">Your max loan cap is ${terms.maxLoanCap.toLocaleString()}.</p>
-              {/* --- THE FIX --- */}
-              {/* The button now passes the 'terms' object directly on click. */}
               <Button onClick={() => handleFinalSubmit(terms)} disabled={isSubmitting || form.getValues("amount") > terms.maxLoanCap} className="w-full">
                 {isSubmitting ? "Submitting..." : "Confirm & Submit Request"}
               </Button>

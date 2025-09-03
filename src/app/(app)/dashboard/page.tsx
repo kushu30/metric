@@ -1,3 +1,4 @@
+// src/app/(app)/dashboard/page.tsx
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -12,7 +13,6 @@ interface Loan {
   _id: string;
   amount: number;
   status: "pending" | "funded" | "repaid" | "defaulted";
-  creditScore: number;
   [key: string]: any;
 }
 
@@ -23,24 +23,29 @@ interface UserProfile {
 export default function DashboardOverviewPage() {
   const [loans, setLoans] = useState<Loan[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [currentScore, setCurrentScore] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [loansResponse, profileResponse] = await Promise.all([
+      const [loansResponse, profileResponse, scoreResponse] = await Promise.all([
         fetch('/api/loans/my-loans'),
-        fetch('/api/user/profile')
+        fetch('/api/user/profile'),
+        fetch('/api/ml/risk-score', { method: 'GET' })
       ]);
 
       if (!loansResponse.ok) throw new Error("Failed to fetch loan data.");
       if (!profileResponse.ok) throw new Error("Failed to fetch profile data.");
+      if (!scoreResponse.ok) throw new Error("Failed to fetch credit score.");
 
       const loansData: Loan[] = await loansResponse.json();
       const profileData: UserProfile = await profileResponse.json();
+      const scoreData = await scoreResponse.json();
 
       setLoans(loansData);
       setProfile(profileData);
+      setCurrentScore(scoreData.score);
     } catch (error: any) {
       toast.error("Failed to load dashboard", { description: error.message });
     } finally {
@@ -56,7 +61,6 @@ export default function DashboardOverviewPage() {
     return <div>Loading Borrower Overview...</div>;
   }
 
-  const creditScore = loans.length > 0 ? loans[0].creditScore : null;
   const activeLoanAmount = loans.filter(l => l.status === 'funded').reduce((sum, l) => sum + l.amount, 0);
   const totalRepaidCount = loans.filter(l => l.status === 'repaid').length;
 
@@ -69,7 +73,6 @@ export default function DashboardOverviewPage() {
         </Link>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -100,11 +103,10 @@ export default function DashboardOverviewPage() {
         </Card>
       </div>
       
-      {/* Main Content Area */}
        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
          <Card className="lg:col-span-1 flex flex-col items-center justify-center p-6">
-          {creditScore !== null ? (
-            <CreditScoreGauge score={creditScore} />
+          {currentScore !== null ? (
+            <CreditScoreGauge score={currentScore} />
           ) : (
              <div className="text-center h-full flex flex-col justify-center">
                 <p className="text-2xl font-bold text-gray-400">N/A</p>
@@ -112,16 +114,15 @@ export default function DashboardOverviewPage() {
             </div>
           )}
            <p className="text-center text-sm text-gray-500 mt-4">
-            {creditScore ? "Based on your latest loan application." : "Request a loan to get a score."}
+            Your live trust score based on platform activity.
           </p>
         </Card>
         <Card className="lg:col-span-2">
              <CardHeader>
-              <CardTitle>Loan Status</CardTitle>
+              <CardTitle>Recent Activity</CardTitle>
             </CardHeader>
             <CardContent>
               <p>Your recent loan activity will be displayed here.</p>
-              {/* You can re-integrate the LoanStatusChart here or a list of recent loans */}
             </CardContent>
         </Card>
        </div>

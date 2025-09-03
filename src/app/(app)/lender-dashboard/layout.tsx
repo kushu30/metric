@@ -1,8 +1,8 @@
+// src/app/(app)/lender-dashboard/layout.tsx
 import Link from "next/link";
-import { CircleGauge, HandCoins, Landmark, User } from "lucide-react";
+import { CircleGauge, Briefcase, User } from "lucide-react";
 
-// This layout will wrap all pages inside the /dashboard route
-export default function BorrowerDashboardLayout({
+export default function LenderDashboardLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -11,17 +11,13 @@ export default function BorrowerDashboardLayout({
     <div className="flex min-h-screen">
       <aside className="w-64 bg-white border-r p-6">
         <nav className="space-y-4">
-          <Link href="/dashboard" className="flex items-center space-x-2 text-gray-700 hover:text-blue-600">
+          <Link href="/lender-dashboard" className="flex items-center space-x-2 text-gray-700 hover:text-blue-600">
             <CircleGauge size={20} />
             <span>Overview</span>
           </Link>
-          <Link href="/dashboard/request" className="flex items-center space-x-2 text-gray-700 hover:text-blue-600">
-            <Landmark size={20} />
-            <span>Request Loan</span>
-          </Link>
-          <Link href="/dashboard/repayments" className="flex items-center space-x-2 text-gray-700 hover:text-blue-600">
-            <HandCoins size={20} />
-            <span>Repayments</span>
+          <Link href="/lender-dashboard/portfolio" className="flex items-center space-x-2 text-gray-700 hover:text-blue-600">
+            <Briefcase size={20} />
+            <span>My Portfolio</span>
           </Link>
           <Link href="/profile" className="flex items-center space-x-2 text-gray-700 hover:text-blue-600">
             <User size={20} />

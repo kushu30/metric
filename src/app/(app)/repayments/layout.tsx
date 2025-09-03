@@ -1,8 +1,8 @@
+// src/app/(app)/repayments/layout.tsx
 import Link from "next/link";
 import { CircleGauge, HandCoins, Landmark, User } from "lucide-react";
 
-// This layout will wrap all pages inside the /dashboard route
-export default function BorrowerDashboardLayout({
+export default function BorrowerPagesLayout({
   children,
 }: {
   children: React.ReactNode;
