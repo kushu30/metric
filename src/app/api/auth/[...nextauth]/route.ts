@@ -39,14 +39,21 @@ export const authOptions: AuthOptions = {
   ],
   session: { strategy: "jwt" },
   callbacks: {
-    async jwt({ token, user }) {
-      // On initial sign-in, fetch the user's role from the DB
+    async jwt({ token, user, trigger, session }) {
+      // Handle session updates
+      if (trigger === "update" && session?.role) {
+        token.role = session.role;
+      }
+
+      // Initial sign-in
       if (user) {
         const client = await clientPromise;
         const db = client.db();
         const dbUser = await db.collection("users").findOne({ _id: new ObjectId(user.id) });
         token.role = dbUser?.role || null;
+        token.sub = user.id; // Use `sub` for the user ID
       }
+
       return token;
     },
     async session({ session, token }) {
