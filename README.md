@@ -8,7 +8,6 @@
 
 Built with Next.js, TypeScript, TailwindCSS, NextAuth.js, and MongoDB
 
-\</div\>
 
 -----
 
