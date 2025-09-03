@@ -5,7 +5,6 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import clientPromise from "@/lib/mongodb";
 import { SiweMessage } from "siwe";
-import { ObjectId } from "mongodb";
 
 export const authOptions: AuthOptions = {
   adapter: MongoDBAdapter(clientPromise),
@@ -42,33 +41,26 @@ export const authOptions: AuthOptions = {
   ],
   session: { strategy: "jwt" },
   callbacks: {
+    // This callback transfers data from the user object (provided by the adapter)
+    // to the JWT on the initial sign-in.
     async jwt({ token, user, trigger, session }) {
+      // Handle role updates from the session
       if (trigger === "update" && session?.role) {
         token.role = session.role;
       }
-
+      
+      // On initial sign-in, the user object is available.
       if (user) {
-        const client = await clientPromise;
-        const db = client.db();
-
-        // Always resolve to MongoDB user
-        const dbUser = await db
-          .collection("users")
-          .findOne({ email: user.email });
-
-        if (dbUser) {
-          token.sub = dbUser._id.toHexString(); // Always use Mongo _id
-          token.role = dbUser.role || null;
-          token.hasOnboarded = dbUser.hasOnboarded || false;
-        } else {
-          token.sub = user.id; // fallback (e.g. SIWE address)
-        }
+        token.sub = user.id;
+        token.role = user.role;
+        token.hasOnboarded = user.hasOnboarded;
       }
-
       return token;
     },
+    // This callback transfers data from the JWT to the session object,
+    // making it available on the client side.
     async session({ session, token }) {
-      if (session.user) {
+      if (session.user && token.sub) {
         session.user.id = token.sub;
         session.user.role = token.role;
         session.user.hasOnboarded = token.hasOnboarded;

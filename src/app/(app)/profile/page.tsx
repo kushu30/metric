@@ -9,6 +9,8 @@ import { useSession } from "next-auth/react";
 import { BrowserProvider } from "ethers";
 import { SiweMessage } from "siwe";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import Link from "next/link";
+import { CheckCircle, ExternalLink } from "lucide-react";
 
 interface LinkedAccount {
   provider: string;
@@ -22,6 +24,8 @@ interface UserProfile {
   role: string;
   balance: number;
   linkedAccounts: LinkedAccount[];
+  anonAadhaarVerified: boolean;
+  socialProofVerified: boolean;
 }
 
 export default function ProfilePage() {
@@ -61,7 +65,7 @@ export default function ProfilePage() {
       await provider.send("eth_requestAccounts", []);
       const signer = await provider.getSigner();
       const address = await signer.getAddress();
-      const chainId = (await provider.getNetwork()).chainId;
+      const { chainId } = await provider.getNetwork();
 
       const message = new SiweMessage({
         domain: window.location.host,
@@ -125,53 +129,73 @@ export default function ProfilePage() {
 
   return (
     <div className="flex justify-center p-4 sm:p-8">
-      <Card className="w-full max-w-2xl">
+      <Card className="w-full max-w-2xl border-white/10 bg-white/[0.02]">
         <CardHeader>
-          <CardTitle>Your Profile</CardTitle>
-          <CardDescription>View and manage your account details.</CardDescription>
+          <CardTitle className="text-white/80">Your Profile</CardTitle>
+          <CardDescription className="text-white/60">View and manage your account details.</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? <p>Loading profile...</p> : profile ? (
-            <div className="space-y-6">
+            <div className="space-y-8">
               <div className="flex items-center space-x-4">
                 <img src={profile.image || `https://avatar.vercel.sh/${profile.email}`} alt="Profile" className="w-16 h-16 rounded-full" />
                 <div>
-                  <h2 className="text-xl font-semibold">{profile.name || "User"}</h2>
-                  <p className="text-sm text-gray-500">{profile.email}</p>
+                  <h2 className="text-xl font-semibold text-white">{profile.name || "User"}</h2>
+                  <p className="text-sm text-white/60">{profile.email}</p>
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <h3 className="font-semibold text-lg">Linked Accounts</h3>
+              <div className="space-y-4">
+                  <h3 className="font-semibold text-lg text-white/80">Verification Status</h3>
+                  <div className="flex items-center justify-between p-4 border rounded-lg border-white/10 bg-white/[0.02]">
+                    <span className="text-white/80">Anon Aadhaar</span>
+                    {profile.anonAadhaarVerified ? (
+                      <span className="flex items-center text-green-400 font-medium"><CheckCircle className="mr-2 h-4 w-4" /> Verified</span>
+                    ) : (
+                      <Link href="/profile/verify"><Button variant="link" className="text-blue-400">Verify Now <ExternalLink className="ml-2 h-4 w-4"/></Button></Link>
+                    )}
+                  </div>
+                   <div className="flex items-center justify-between p-4 border rounded-lg border-white/10 bg-white/[0.02]">
+                    <span className="text-white/80">Social Proof (2 Vouches)</span>
+                    {profile.socialProofVerified ? (
+                      <span className="flex items-center text-green-400 font-medium"><CheckCircle className="mr-2 h-4 w-4" /> Verified</span>
+                    ) : (
+                       <Link href="/profile/verify"><Button variant="link" className="text-blue-400">Get Vouched For <ExternalLink className="ml-2 h-4 w-4"/></Button></Link>
+                    )}
+                  </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg text-white/80">Linked Accounts</h3>
                 <ul className="space-y-2">
                   {Array.isArray(profile.linkedAccounts) && profile.linkedAccounts.map(acc => (
-                    <li key={acc.provider} className="text-sm p-3 border rounded-md bg-gray-50 truncate">
+                    <li key={acc.provider} className="text-sm p-3 border rounded-lg truncate border-white/10 bg-white/[0.02] text-white/80">
                       {acc.provider === 'google' && `Google: ${profile.email}`}
                       {acc.provider === 'credentials' && `Wallet: ${acc.address}`}
                     </li>
                   ))}
                 </ul>
                 {!isWalletLinked && (
-                  <Button onClick={handleLinkWallet} disabled={isLinking}>
+                  <Button onClick={handleLinkWallet} disabled={isLinking} className="bg-white text-black hover:bg-white/90">
                     {isLinking ? "Check Wallet..." : "Link Web3 Wallet"}
                   </Button>
                 )}
               </div>
               
-              <div className="space-y-3">
-                <h3 className="font-semibold text-lg">Manage Role</h3>
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg text-white/80">Manage Role</h3>
                 <div className="flex items-center space-x-4">
                    <Select value={selectedRole} onValueChange={setSelectedRole}>
-                      <SelectTrigger className="w-[180px]">
+                      <SelectTrigger className="w-[180px] border-white/10 bg-white/[0.02] text-white">
                         <SelectValue placeholder="Select a role" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="border-white/10 bg-black text-white">
                         <SelectItem value="borrower">Borrower</SelectItem>
                         <SelectItem value="lender">Lender</SelectItem>
                         <SelectItem value="both">Both</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Button onClick={handleUpdateRole} disabled={isUpdatingRole || selectedRole === profile.role}>
+                    <Button onClick={handleUpdateRole} disabled={isUpdatingRole || selectedRole === profile.role} className="bg-white text-black hover:bg-white/90">
                       {isUpdatingRole ? "Saving..." : "Save Role"}
                     </Button>
                 </div>

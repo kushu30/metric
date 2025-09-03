@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { DollarSign, TrendingUp, Landmark, Wallet, RefreshCw, SlidersHorizontal } from "lucide-react";
+import { DollarSign, TrendingUp, Landmark, Wallet, RefreshCw, SlidersHorizontal, ShieldCheck, Users } from "lucide-react";
 import InsurancePoolCard from "@/components/InsurancePoolCard";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,8 @@ interface Loan {
     interestRate: number;
     borrowerIdentifier: string;
     status: "pending" | "funded" | "repaid" | "defaulted";
+    anonAadhaarVerified: boolean;
+    socialProofVerified: boolean;
 }
 
 interface UserProfile {
@@ -103,6 +105,16 @@ export default function LenderDashboard() {
         if (score >= 600) return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Medium Risk</Badge>;
         return <Badge variant="destructive">High Risk</Badge>;
     };
+
+    const getTrustTier = (loan: Loan) => {
+        if (loan.anonAadhaarVerified && loan.socialProofVerified) {
+            return <Badge className="bg-blue-500">Tier 3</Badge>;
+        }
+        if (loan.anonAadhaarVerified) {
+            return <Badge className="bg-blue-300 text-blue-800">Tier 2</Badge>;
+        }
+        return <Badge variant="outline">Tier 1</Badge>;
+    }
 
     if (isLoading) {
         return <div className="text-white/70">Loading Lender Overview...</div>;
@@ -204,6 +216,7 @@ export default function LenderDashboard() {
                                     <TableHead>Amount</TableHead>
                                     <TableHead>Interest</TableHead>
                                     <TableHead>Risk</TableHead>
+                                    <TableHead>Trust Tier</TableHead>
                                     <TableHead className="text-right">Action</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -214,6 +227,7 @@ export default function LenderDashboard() {
                                         <TableCell>${loan.amount.toLocaleString()}</TableCell>
                                         <TableCell>{loan.interestRate}%</TableCell>
                                         <TableCell>{getRiskBadge(loan.creditScore)}</TableCell>
+                                        <TableCell>{getTrustTier(loan)}</TableCell>
                                         <TableCell className="text-right">
                                             <Button
                                                 size="sm"

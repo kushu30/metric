@@ -4,46 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import clientPromise from "@/lib/mongodb";
 import { Db, ObjectId } from "mongodb";
-
-// Helper function to calculate risk score, can be moved to a lib file
-async function calculateRiskScore(db: Db, userId: string) {
-    const user = await db.collection("users").findOne({ _id: new ObjectId(userId) });
-    const userLoans = await db.collection("loans").find({ userId: userId }).toArray();
-
-    if (!user) {
-        throw new Error("User not found for scoring.");
-    }
-
-    let score = 500; // Base score
-    const balance = user.balance || 0;
-
-    const totalLoans = userLoans.length;
-    const repaidLoans = userLoans.filter(l => l.status === 'repaid').length;
-    const defaultedLoans = userLoans.filter(l => l.status === 'defaulted').length;
-    const activeLoans = userLoans.filter(l => l.status === 'funded');
-
-    // Apply scoring rules
-    score -= defaultedLoans * 150;
-    score += repaidLoans * 25;
-    
-    if (totalLoans > 0 && defaultedLoans === 0) {
-      const repaymentRatio = repaidLoans / totalLoans;
-      score += repaymentRatio * 50;
-    }
-
-    activeLoans.forEach(loan => {
-        const totalDue = loan.amount * (1 + (loan.interestRate / 100) * (loan.duration / 12));
-        const progress = (loan.repaidAmount || 0) / totalDue;
-        score += progress * 20;
-    });
-    
-    if (balance > 10000) score += 25;
-    if (balance > 25000) score += 25;
-
-    const finalScore = Math.max(300, Math.min(score, 850));
-    return Math.round(finalScore);
-}
-
+import { calculateRiskScore } from "../../ml/risk-score/route"; // Import the centralized function
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -107,8 +68,8 @@ export async function POST(request: Request) {
       return { message: "Repayment successful", status: isFullyRepaid ? "repaid" : "funded" };
     });
 
-    // Recalculate score after successful transaction
-    const newScore = await calculateRiskScore(db, userId);
+    // Recalculate score after successful transaction using the centralized function
+    const newScore = await calculateRiskScore(db, userId, { amount: 0, duration: 0 });
 
     return NextResponse.json({ ...repaymentResult, newScore });
 

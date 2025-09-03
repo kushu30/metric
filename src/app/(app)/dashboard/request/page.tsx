@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { ethers } from "ethers";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import Link from "next/link";
 
 const formSchema = z.object({
   amount: z.coerce
@@ -42,24 +44,30 @@ interface LoanTerms {
   totalRepayment: number;
 }
 
+interface UserProfile {
+    balance: number;
+    anonAadhaarVerified: boolean;
+    socialProofVerified: boolean;
+}
+
 export default function RequestLoanPage() {
   const router = useRouter();
   const [terms, setTerms] = useState<LoanTerms | null>(null);
   const [isCheckingTerms, setIsCheckingTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [userBalance, setUserBalance] = useState(0);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [mtrcPrice] = useState(1); // Mock price for MTRC token
 
   useEffect(() => {
-    // Fetch user balance to set a realistic max for collateral
     const fetchProfile = async () => {
         try {
             const res = await fetch('/api/user/profile');
             const data = await res.json();
             if(res.ok) {
-                setUserBalance(data.balance || 0);
+                setUserProfile(data);
             }
         } catch (error) {
-            console.error("Failed to fetch balance");
+            console.error("Failed to fetch profile");
         }
     };
     fetchProfile();
@@ -70,11 +78,20 @@ export default function RequestLoanPage() {
     defaultValues: { amount: 5000, durationValue: 6, durationUnit: "months", collateral: 0 },
   });
 
+  const getTier = () => {
+    if (userProfile?.anonAadhaarVerified && userProfile?.socialProofVerified) {
+        return 3;
+    }
+    if (userProfile?.anonAadhaarVerified) {
+        return 2;
+    }
+    return 1;
+  }
+
   const handleCheckTerms: SubmitHandler<FormValues> = async (values) => {
     setIsCheckingTerms(true);
     setTerms(null);
 
-    // Convert duration to months
     let durationInMonths = values.durationValue;
     if (values.durationUnit === "years") durationInMonths = values.durationValue * 12;
     if (values.durationUnit === "days") durationInMonths = Math.ceil(values.durationValue / 30);
@@ -96,14 +113,32 @@ export default function RequestLoanPage() {
       if (score >= 750) interestRate = 5;
       else if (score >= 600) interestRate = 10;
 
-      const maxLoanCap = score * 100 + (values.collateral || 0) * 10;
+      const tier = getTier();
+      let maxLoanCap = (values.collateral || 0) * 1; // Tier 1
+      if (tier === 2) {
+        maxLoanCap = (values.collateral || 0) * 2;
+      } else if (tier === 3) {
+        maxLoanCap = (values.collateral || 0) * 5;
+      }
+
+
       const totalRepayment = values.amount * (1 + interestRate / 100);
 
-      if (values.amount > maxLoanCap) {
+      if (values.amount > maxLoanCap && maxLoanCap > 0) {
         toast.warning("Loan amount exceeds your cap", {
-          description: `Based on your score of ${score}, your maximum loan is $${maxLoanCap}.`,
+          description: (
+            <span>
+              Based on your verification status, your maximum loan is ${maxLoanCap.toLocaleString()}.
+              <Link href="/profile/verify" className="underline font-bold ml-1">Verify your identity</Link> to increase your limit.
+            </span>
+          )
+        });
+      } else if (values.amount > 0 && maxLoanCap === 0 && values.collateral === 0) {
+        toast.info("Add Collateral to Get a Loan", {
+          description: "Please stake some collateral to be eligible for a loan.",
         });
       }
+
 
       setTerms({ creditScore: score, interestRate, maxLoanCap, totalRepayment });
     } catch (error: any) {
@@ -113,9 +148,15 @@ export default function RequestLoanPage() {
     }
   };
 
-  const handleFinalSubmit = async (loanTerms: LoanTerms) => {
+    const handleFinalSubmit = async (loanTerms: LoanTerms) => {
     setIsSubmitting(true);
     try {
+      if (!window.ethereum) {
+        throw new Error("MetaMask not found. Please install it.");
+      }
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+        
       const formValues = form.getValues();
       let durationInMonths = formValues.durationValue;
       if (formValues.durationUnit === "years") durationInMonths = formValues.durationValue * 12;
@@ -129,6 +170,18 @@ export default function RequestLoanPage() {
         collateral: Number(formValues.collateral) || 0,
       };
 
+      // Simulate staking
+      if (loanData.collateral > 0) {
+        if (!userProfile || userProfile.balance < loanData.collateral) {
+            throw new Error("Insufficient balance to stake collateral.");
+        }
+        toast.info("Staking collateral...", {
+            description: `Locking ${(loanData.collateral / mtrcPrice).toLocaleString()} MTRC in the contract.`
+        })
+        await new Promise(res => setTimeout(res, 2000)); // Simulate transaction time
+        setUserProfile(prev => prev ? {...prev, balance: prev.balance - loanData.collateral} : null);
+      }
+
       const response = await fetch("/api/loans/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -140,7 +193,9 @@ export default function RequestLoanPage() {
         throw new Error(responseData.error || "The server rejected the request.");
       }
 
-      toast.success("Loan request created successfully!");
+      toast.success("Loan request created successfully!", {
+        description: `Your loan of $${loanData.amount.toLocaleString()} (${(loanData.amount / mtrcPrice).toLocaleString()} MTRC) is now pending.`
+      });
       router.push("/dashboard");
     } catch (error: any) {
       console.error("SUBMISSION FAILED:", error);
@@ -227,12 +282,12 @@ export default function RequestLoanPage() {
                           value={[field.value || 0]}
                           onValueChange={(vals) => field.onChange(vals[0])}
                           min={0}
-                          max={userBalance} 
+                          max={userProfile?.balance || 0}
                           step={50}
                         />
                       </FormControl>
                       <FormDescription>
-                        Staking collateral can improve your loan terms. You can stake up to ${userBalance.toLocaleString()}.
+                        Staking collateral can improve your loan terms. You can stake up to ${ (userProfile?.balance || 0).toLocaleString()}.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -261,7 +316,7 @@ export default function RequestLoanPage() {
                 <strong>Interest Rate:</strong> {terms.interestRate}%
               </p>
               <p>
-                <strong>Total Repayment:</strong> ${terms.totalRepayment.toFixed(2)}
+                <strong>Total Repayment:</strong> ${terms.totalRepayment.toFixed(2)} (${(terms.totalRepayment / mtrcPrice).toLocaleString()} MTRC)
               </p>
               <p className="text-sm text-gray-500">
                 Your max loan cap is ${terms.maxLoanCap.toLocaleString()}.

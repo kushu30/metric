@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { ethers } from "ethers";
 
 interface Loan {
   _id: string;
@@ -25,6 +26,7 @@ export default function RepaymentsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [repaymentAmounts, setRepaymentAmounts] = useState<Record<string, string>>({});
   const [activeLoanId, setActiveLoanId] = useState<string | null>(null);
+  const [mtrcPrice] = useState(1); // Mock price for MTRC token
 
   const fetchUserLoans = useCallback(async () => {
     setIsLoading(true);
@@ -47,6 +49,10 @@ export default function RepaymentsPage() {
   const handleRepayment = async (loanId: string, amount?: number) => {
     setActiveLoanId(loanId);
     try {
+      if (!window.ethereum) throw new Error("MetaMask is not installed.");
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      
       const response = await fetch(`/api/loans/repay`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -71,7 +77,21 @@ export default function RepaymentsPage() {
   const handleDefault = async (loanId: string) => {
     setActiveLoanId(loanId);
     try {
-      // Logic from your original file
+      const response = await fetch(`/api/loans/default`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ loanId }),
+      });
+       const responseData = await response.json();
+      if (!response.ok) {
+        throw new Error(responseData.error || `Failed to process default.`);
+      }
+      toast.warning(`Loan marked as defaulted.`, {
+        description: `Your wallet is now locked and a repayment plan has been created. Your new score is ${responseData.newScore}.`,
+      });
+      fetchUserLoans();
+    } catch (error: any) {
+        toast.error(`Error`, { description: error.message });
     } finally {
       setActiveLoanId(null);
     }
@@ -129,7 +149,7 @@ export default function RepaymentsPage() {
                           <div className="flex items-center justify-end space-x-2">
                              <Input 
                                 type="number" 
-                                placeholder="Amount" 
+                                placeholder={`Amount (in $)`}
                                 className="w-28 h-8 border-white/10 bg-white/[0.02] text-white placeholder:text-white/50"
                                 value={repaymentAmounts[loan._id] || ''}
                                 onChange={(e) => setRepaymentAmounts({...repaymentAmounts, [loan._id]: e.target.value})}
@@ -139,6 +159,9 @@ export default function RepaymentsPage() {
                               </Button>
                            <Button size="sm" className="bg-white text-black hover:bg-white/90" onClick={() => handleRepayment(loan._id)} disabled={activeLoanId === loan._id}>
                             Pay Full
+                          </Button>
+                           <Button size="sm" variant="destructive" onClick={() => handleDefault(loan._id)} disabled={activeLoanId === loan._id}>
+                            Default
                           </Button>
                         </div>
                       )}
@@ -153,4 +176,3 @@ export default function RepaymentsPage() {
     </div>
   );
 }
-

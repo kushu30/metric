@@ -16,17 +16,33 @@ export async function GET() {
     const db = client.db();
 
     const user = await db.collection("users").findOne(
-      { _id: new ObjectId(session.user.id) },
-      { projection: { anonAadhaarVerified: 1, socialProofVerified: 1 } }
+      { _id: new ObjectId(session.user.id) }
     );
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
+    
+    // Also fetch linked accounts
+    const accounts = await db.collection("accounts").find(
+        { userId: new ObjectId(session.user.id) }
+    ).toArray();
+
+    const linkedAccounts = accounts.map(acc => ({
+        provider: acc.provider,
+        address: acc.providerAccountId,
+    }));
+
 
     return NextResponse.json({
+      name: user.name,
+      email: user.email,
+      image: user.image,
+      role: user.role,
+      balance: user.balance || 0,
       anonAadhaarVerified: !!user.anonAadhaarVerified,
       socialProofVerified: !!user.socialProofVerified,
+      linkedAccounts: linkedAccounts,
     });
   } catch (error) {
     console.error("Profile fetch error:", error);

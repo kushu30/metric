@@ -1,3 +1,4 @@
+// src/app/api/loans/pending/route.ts
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
@@ -19,26 +20,30 @@ export async function GET(request: Request) {
     
     const loanDetails = await Promise.all(
       pendingLoans.map(async (loan) => {
-        // Defensive check: ensure loan.userId exists and is a valid ObjectId string
         if (!loan.userId || !ObjectId.isValid(loan.userId)) {
           return {
             ...loan,
             borrowerIdentifier: "Unknown Borrower",
+            anonAadhaarVerified: false,
+            socialProofVerified: false,
           };
         }
 
         const user = await db.collection("users").findOne({ _id: new ObjectId(loan.userId) });
 
-        // If a user is found, use their details. Otherwise, provide a fallback.
         if (user) {
           return {
             ...loan,
             borrowerIdentifier: user.email || user._id.toString(),
+            anonAadhaarVerified: !!user.anonAadhaarVerified,
+            socialProofVerified: !!user.socialProofVerified,
           };
         } else {
           return {
             ...loan,
             borrowerIdentifier: "Borrower Not Found",
+            anonAadhaarVerified: false,
+            socialProofVerified: false,
           };
         }
       })
