@@ -15,19 +15,32 @@ export async function GET(request: Request) {
     const client = await clientPromise;
     const db = client.db();
 
-    // Find all loans with 'pending' status
     const pendingLoans = await db.collection("loans").find({ status: "pending" }).toArray();
     
-    // We need to fetch user details (like email or wallet address) for each loan
-    // to display to the lender.
     const loanDetails = await Promise.all(
       pendingLoans.map(async (loan) => {
-        // Find the user associated with the loan to get their identifier
+        // Defensive check: ensure loan.userId exists and is a valid ObjectId string
+        if (!loan.userId || !ObjectId.isValid(loan.userId)) {
+          return {
+            ...loan,
+            borrowerIdentifier: "Unknown Borrower",
+          };
+        }
+
         const user = await db.collection("users").findOne({ _id: new ObjectId(loan.userId) });
-        return {
-          ...loan,
-          borrowerIdentifier: user?.email || user?._id.toString(), // Use email if available, otherwise fallback to ID
-        };
+
+        // If a user is found, use their details. Otherwise, provide a fallback.
+        if (user) {
+          return {
+            ...loan,
+            borrowerIdentifier: user.email || user._id.toString(),
+          };
+        } else {
+          return {
+            ...loan,
+            borrowerIdentifier: "Borrower Not Found",
+          };
+        }
       })
     );
 
