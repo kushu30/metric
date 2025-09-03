@@ -1,5 +1,6 @@
 \<div align="center"\>
-\<img width="200" height="200" alt="logo" src="[https://github.com/user-attachments/assets/169f5ff2-05cb-4269-8390-042b425e174e](https://github.com/user-attachments/assets/169f5ff2-05cb-4269-8390-042b425e174e)" /\>
+<img width="177" height="75" alt="image" src="https://github.com/user-attachments/assets/3c0a2e88-1815-4542-9f7a-0735cceeaa5e" />
+
 
 # Metric
 
