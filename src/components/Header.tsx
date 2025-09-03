@@ -20,12 +20,16 @@ export default function Header() {
             <div className="h-9 w-20 animate-pulse bg-gray-200 rounded-md"></div>
           ) : session ? (
             <>
-              <Link href="/dashboard">
-                <Button variant="ghost" size="sm">Borrower Dashboard</Button>
-              </Link>
-              <Link href="/lender-dashboard">
-                <Button variant="ghost" size="sm">Lender Dashboard</Button>
-              </Link>
+              {(session.user?.role === "borrower" || session.user?.role === "both") && (
+                <Link href="/dashboard">
+                  <Button variant="ghost" size="sm">Borrower Dashboard</Button>
+                </Link>
+              )}
+              {(session.user?.role === "lender" || session.user?.role === "both") && (
+                <Link href="/lender-dashboard">
+                  <Button variant="ghost" size="sm">Lender Dashboard</Button>
+                </Link>
+              )}
               <Link href="/profile">
                 <Button variant="ghost" size="sm">Profile</Button>
               </Link>
