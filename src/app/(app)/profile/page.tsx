@@ -1,3 +1,4 @@
+// src/app/(app)/profile/page.tsx
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -120,7 +121,7 @@ export default function ProfilePage() {
     }
   };
 
-  const isWalletLinked = profile?.linkedAccounts.some(acc => acc.provider === 'credentials');
+  const isWalletLinked = profile?.linkedAccounts?.some(acc => acc.provider === 'credentials');
 
   return (
     <div className="flex justify-center p-4 sm:p-8">
@@ -143,7 +144,7 @@ export default function ProfilePage() {
               <div className="space-y-3">
                 <h3 className="font-semibold text-lg">Linked Accounts</h3>
                 <ul className="space-y-2">
-                  {profile.linkedAccounts.map(acc => (
+                  {Array.isArray(profile.linkedAccounts) && profile.linkedAccounts.map(acc => (
                     <li key={acc.provider} className="text-sm p-3 border rounded-md bg-gray-50 truncate">
                       {acc.provider === 'google' && `Google: ${profile.email}`}
                       {acc.provider === 'credentials' && `Wallet: ${acc.address}`}

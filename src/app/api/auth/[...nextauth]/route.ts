@@ -1,3 +1,4 @@
+// src/app/api/auth/[...nextauth]/route.ts
 import NextAuth, { AuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -21,7 +22,9 @@ export const authOptions: AuthOptions = {
       },
       async authorize(credentials) {
         try {
-          const siwe = new SiweMessage(JSON.parse(credentials?.message || "{}"));
+          const siwe = new SiweMessage(
+            JSON.parse(credentials?.message || "{}")
+          );
           const nextAuthUrl = new URL(process.env.NEXTAUTH_URL as string);
           const result = await siwe.verify({
             signature: credentials?.signature || "",
@@ -40,18 +43,26 @@ export const authOptions: AuthOptions = {
   session: { strategy: "jwt" },
   callbacks: {
     async jwt({ token, user, trigger, session }) {
-      // Handle session updates
       if (trigger === "update" && session?.role) {
         token.role = session.role;
       }
 
-      // Initial sign-in
       if (user) {
         const client = await clientPromise;
         const db = client.db();
-        const dbUser = await db.collection("users").findOne({ _id: new ObjectId(user.id) });
-        token.role = dbUser?.role || null;
-        token.sub = user.id; // Use `sub` for the user ID
+
+        // Always resolve to MongoDB user
+        const dbUser = await db
+          .collection("users")
+          .findOne({ email: user.email });
+
+        if (dbUser) {
+          token.sub = dbUser._id.toHexString(); // Always use Mongo _id
+          token.role = dbUser.role || null;
+          token.hasOnboarded = dbUser.hasOnboarded || false;
+        } else {
+          token.sub = user.id; // fallback (e.g. SIWE address)
+        }
       }
 
       return token;
@@ -60,6 +71,7 @@ export const authOptions: AuthOptions = {
       if (session.user) {
         session.user.id = token.sub;
         session.user.role = token.role;
+        session.user.hasOnboarded = token.hasOnboarded;
       }
       return session;
     },
@@ -68,5 +80,4 @@ export const authOptions: AuthOptions = {
 };
 
 const handler = NextAuth(authOptions);
-
 export { handler as GET, handler as POST };

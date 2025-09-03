@@ -1,3 +1,4 @@
+// src/components/CreditScoreGauge.tsx
 "use client";
 
 import { motion } from "framer-motion";
@@ -8,14 +9,17 @@ interface CreditScoreGaugeProps {
 
 const RADIUS = 80;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+const MIN_SCORE = 300;
+const MAX_SCORE = 850;
 
 export default function CreditScoreGauge({ score }: CreditScoreGaugeProps) {
-  const scoreProgress = score / 100;
+  // Normalize the score to a 0-1 range based on the min/max possible scores
+  const scoreProgress = (Math.max(0, score - MIN_SCORE)) / (MAX_SCORE - MIN_SCORE);
   const strokeDashoffset = CIRCUMFERENCE * (1 - scoreProgress);
 
   const getColor = () => {
-    if (score >= 80) return "#22c55e"; // green-500
-    if (score >= 50) return "#facc15"; // yellow-400
+    if (score >= 750) return "#22c55e"; // green-500
+    if (score >= 600) return "#facc15"; // yellow-400
     return "#ef4444"; // red-500
   };
   const color = getColor();
@@ -55,7 +59,7 @@ export default function CreditScoreGauge({ score }: CreditScoreGaugeProps) {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
         >
-          {score}
+          {Math.round(score)}
         </motion.span>
         <p className="text-sm text-gray-500">Credit Score</p>
       </div>

@@ -8,11 +8,13 @@ import Link from "next/link";
 import CreditScoreGauge from "@/components/CreditScoreGauge";
 import { toast } from "sonner";
 import { Landmark, Wallet, CheckCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface Loan {
   _id: string;
   amount: number;
   status: "pending" | "funded" | "repaid" | "defaulted";
+  requestedAt: string;
   [key: string]: any;
 }
 
@@ -56,6 +58,15 @@ export default function DashboardOverviewPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const getStatusBadge = (status: Loan['status']) => {
+    switch (status) {
+      case 'funded': return <Badge variant="default" className="bg-blue-500">Active</Badge>;
+      case 'repaid': return <Badge variant="secondary" className="bg-green-100 text-green-800">Completed</Badge>;
+      case 'pending': return <Badge variant="outline">Pending</Badge>;
+      case 'defaulted': return <Badge variant="destructive">Defaulted</Badge>;
+    }
+  };
 
   if (isLoading) {
     return <div>Loading Borrower Overview...</div>;
@@ -118,11 +129,30 @@ export default function DashboardOverviewPage() {
           </p>
         </Card>
         <Card className="lg:col-span-2">
-             <CardHeader>
+             <CardHeader className="flex justify-between items-center">
               <CardTitle>Recent Activity</CardTitle>
+              <Link href="/repayments">
+                <Button variant="link" size="sm">View All</Button>
+              </Link>
             </CardHeader>
             <CardContent>
-              <p>Your recent loan activity will be displayed here.</p>
+              {loans.length > 0 ? (
+                <ul className="space-y-4">
+                  {loans.slice(0, 3).map(loan => (
+                    <li key={loan._id} className="flex justify-between items-center">
+                      <div>
+                        <p className="font-medium">${loan.amount.toLocaleString()} Loan</p>
+                        <p className="text-sm text-muted-foreground">
+                          Requested on {new Date(loan.requestedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      {getStatusBadge(loan.status)}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>You have no recent loan activity.</p>
+              )}
             </CardContent>
         </Card>
        </div>
