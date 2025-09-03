@@ -1,9 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { redirect } from "next/navigation";
-import SignOutButton from "@/components/SignOutButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -27,7 +24,6 @@ interface LoanRequest {
 }
 
 export default function LenderDashboard() {
-  const { data: session, status } = useSession();
   const [loans, setLoans] = useState<LoanRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [fundingLoanId, setFundingLoanId] = useState<string | null>(null);
@@ -47,10 +43,8 @@ export default function LenderDashboard() {
   };
 
   useEffect(() => {
-    if (session) {
-      fetchLoans();
-    }
-  }, [session]);
+    fetchLoans();
+  }, []);
 
   const handleFundLoan = async (loanId: string) => {
     setFundingLoanId(loanId);
@@ -75,14 +69,6 @@ export default function LenderDashboard() {
     }
   };
 
-  if (status === "loading") {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  }
-
-  if (!session) {
-    redirect("/");
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center p-4 sm:p-8">
       <div className="w-full max-w-6xl">
@@ -90,11 +76,9 @@ export default function LenderDashboard() {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
             Lender Dashboard
           </h1>
-          <SignOutButton />
         </header>
 
         <main className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Pending loan requests (2/3 width) */}
           <div className="lg:col-span-2">
             <Card>
               <CardHeader>
@@ -141,7 +125,6 @@ export default function LenderDashboard() {
             </Card>
           </div>
 
-          {/* Sidebar (Insurance Pool) */}
           <div className="space-y-8">
             <InsurancePoolCard />
           </div>

@@ -1,22 +1,11 @@
-// src/app/api/auth/[...nextauth]/route.ts
 import NextAuth, { AuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import clientPromise from "@/lib/mongodb";
 import { SiweMessage } from "siwe";
+import { ObjectId } from "mongodb";
 
-// --- START DIAGNOSTIC LOGS ---
-console.log("\nSERVER-SIDE AUTH CONFIGURATION CHECK:");
-console.log(
-  `GOOGLE_CLIENT_ID loaded: ${!!process.env.GOOGLE_CLIENT_ID}`
-);
-console.log(
-  `GOOGLE_CLIENT_SECRET loaded: ${!!process.env.GOOGLE_CLIENT_SECRET}`
-);
-// --- END DIAGNOSTIC LOGS ---
-
-// ✅ Export options separately so getServerSession can use it
 export const authOptions: AuthOptions = {
   adapter: MongoDBAdapter(clientPromise),
   providers: [
@@ -32,9 +21,7 @@ export const authOptions: AuthOptions = {
       },
       async authorize(credentials) {
         try {
-          const siwe = new SiweMessage(
-            JSON.parse(credentials?.message || "{}")
-          );
+          const siwe = new SiweMessage(JSON.parse(credentials?.message || "{}"));
           const nextAuthUrl = new URL(process.env.NEXTAUTH_URL as string);
           const result = await siwe.verify({
             signature: credentials?.signature || "",
@@ -52,15 +39,27 @@ export const authOptions: AuthOptions = {
   ],
   session: { strategy: "jwt" },
   callbacks: {
-    async session({ session, token }: { session: any; token: any }) {
-      session.user.id = token.sub;
+    async jwt({ token, user }) {
+      // On initial sign-in, fetch the user's role from the DB
+      if (user) {
+        const client = await clientPromise;
+        const db = client.db();
+        const dbUser = await db.collection("users").findOne({ _id: new ObjectId(user.id) });
+        token.role = dbUser?.role || null;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.sub;
+        session.user.role = token.role;
+      }
       return session;
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
 };
 
-// ✅ Pass options into NextAuth
 const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };
