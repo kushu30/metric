@@ -37,17 +37,17 @@ export default function InsurancePoolCard() {
   }, []);
 
   return (
-    <Card>
+    <Card className="border-white/10 bg-white/[0.02]">
       <CardHeader>
-        <CardTitle>Insurance Pool</CardTitle>
-        <CardDescription>Community-backed default protection.</CardDescription>
+        <CardTitle className="text-white/80">Insurance Pool</CardTitle>
+        <CardDescription className="text-white/60">Community-backed default protection.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+        <div className="flex items-center justify-between p-3 rounded-lg border border-white/10 bg-white/[0.02]">
           <div className="flex items-center space-x-3">
             <PiggyBank className="w-6 h-6 text-green-500" />
             <div>
-              <p className="text-sm text-gray-500">Total Value Locked</p>
+              <p className="text-sm text-white/60">Total Value Locked</p>
               <p className="text-lg font-bold">
                 {isLoading ? "..." : poolData ? `$${poolData.balance.toLocaleString()}` : "$0"}
               </p>
@@ -57,14 +57,14 @@ export default function InsurancePoolCard() {
         <div className="flex items-center justify-between text-sm">
            <div className="flex items-center space-x-2">
                 <ShieldCheck className="w-4 h-4 text-blue-500"/>
-                <span>Defaults Covered:</span>
+                <span className="text-white/80">Defaults Covered:</span>
            </div>
           <span className="font-semibold">{isLoading ? "..." : poolData?.defaultsCovered ?? 0}</span>
         </div>
         <div className="flex items-center justify-between text-sm">
             <div className="flex items-center space-x-2">
                 <HandCoins className="w-4 h-4 text-yellow-500"/>
-                <span>My Contribution:</span>
+                <span className="text-white/80">My Contribution:</span>
             </div>
           <span className="font-semibold">{isLoading ? "..." : poolData ? `$${poolData.userContribution.toLocaleString()}` : "$0"}</span>
         </div>
@@ -72,3 +72,5 @@ export default function InsurancePoolCard() {
     </Card>
   );
 }
+
+

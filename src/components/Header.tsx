@@ -9,9 +9,9 @@ export default function Header() {
   const isLoading = status === "loading";
 
   return (
-    <header className="w-full bg-white shadow-sm border-b">
-      <nav className="max-w-7xl mx-auto flex items-center justify-between p-4">
-        <Link href="/" className="text-2xl font-bold text-gray-800">
+    <header className="w-full fixed top-0 left-0 z-40 backdrop-blur supports-[backdrop-filter]:bg-black/40 bg-black/60 border-b border-white/10">
+      <nav className="max-w-7xl mx-auto flex items-center justify-between px-4 py-3">
+        <Link href="/" className="text-2xl font-bold tracking-tight text-white">
           Metric
         </Link>
 
@@ -20,25 +20,21 @@ export default function Header() {
             <div className="h-9 w-20 animate-pulse bg-gray-200 rounded-md"></div>
           ) : session ? (
             <>
-              {(session.user?.role === "borrower" || session.user?.role === "both") && (
-                <Link href="/dashboard">
-                  <Button variant="ghost" size="sm">Borrower Dashboard</Button>
-                </Link>
-              )}
-              {(session.user?.role === "lender" || session.user?.role === "both") && (
-                <Link href="/lender-dashboard">
-                  <Button variant="ghost" size="sm">Lender Dashboard</Button>
-                </Link>
-              )}
-              <Link href="/profile">
-                <Button variant="ghost" size="sm">Profile</Button>
+              <Link href="/dashboard">
+                <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">Borrower Dashboard</Button>
               </Link>
-              <Button onClick={() => signOut()} size="sm" variant="outline">
+              <Link href="/lender-dashboard">
+                <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">Lender Dashboard</Button>
+              </Link>
+              <Link href="/profile">
+                <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">Profile</Button>
+              </Link>
+              <Button onClick={() => signOut()} size="sm" variant="outline" className="border-white/20 text-white hover:bg-white/10">
                 Sign Out
               </Button>
             </>
           ) : (
-            <Button onClick={() => signIn()} size="sm">
+            <Button onClick={() => signIn()} size="sm" className="bg-white text-black hover:bg-white/90">
               Sign In / Sign Up
             </Button>
           )}

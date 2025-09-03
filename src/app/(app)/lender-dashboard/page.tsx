@@ -105,7 +105,7 @@ export default function LenderDashboard() {
     };
 
     if (isLoading) {
-        return <div>Loading Lender Overview...</div>;
+        return <div className="text-white/70">Loading Lender Overview...</div>;
     }
     
     const totalFunded = fundedLoans.reduce((sum, loan) => sum + loan.amount, 0);
@@ -138,17 +138,17 @@ export default function LenderDashboard() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold">Lender Overview</h1>
-                <Button onClick={fetchData} variant="outline" size="sm">
+                <Button onClick={fetchData} variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/10">
                     <RefreshCw className="mr-2 h-4 w-4" />
                     Refresh
                 </Button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card>
+                <Card className="border-white/10 bg-white/[0.02]">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Wallet Balance</CardTitle>
-                        <Wallet className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-sm font-medium text-white/80">Wallet Balance</CardTitle>
+                        <Wallet className="h-4 w-4 text-white/50" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
@@ -156,25 +156,25 @@ export default function LenderDashboard() {
                         </div>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="border-white/10 bg-white/[0.02]">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Value Funded</CardTitle>
-                        <Landmark className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-sm font-medium text-white/80">Total Value Funded</CardTitle>
+                        <Landmark className="h-4 w-4 text-white/50" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">${totalFunded.toLocaleString()}</div>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="border-white/10 bg-white/[0.02]">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Potential Returns</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-sm font-medium text-white/80">Potential Returns</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-white/50" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
                             ${potentialReturns.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </div>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-white/60">
                             Avg Annualized ROI: {avgAnnualizedROI.toFixed(2)}%
                         </p>
                     </CardContent>
@@ -182,14 +182,14 @@ export default function LenderDashboard() {
                 <InsurancePoolCard />
             </div>
 
-            <Card>
+            <Card className="border-white/10 bg-white/[0.02]">
                 <CardHeader>
-                    <CardTitle>Loan Marketplace</CardTitle>
-                    <CardDescription>Browse and fund pending loan requests.</CardDescription>
+                    <CardTitle className="text-white/80">Loan Marketplace</CardTitle>
+                    <CardDescription className="text-white/60">Browse and fund pending loan requests.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex items-center space-x-4 mb-4 p-4 bg-gray-50 rounded-lg">
-                        <SlidersHorizontal className="h-5 w-5 text-gray-500" />
+                    <div className="flex items-center space-x-4 mb-4 p-4 rounded-lg border border-white/10 bg-white/[0.02]">
+                        <SlidersHorizontal className="h-5 w-5 text-white/60" />
                         <Input placeholder="Min Score" value={filters.score} onChange={e => setFilters({...filters, score: e.target.value})} className="max-w-xs" />
                         <Input placeholder="Min Rate (%)" value={filters.rate} onChange={e => setFilters({...filters, rate: e.target.value})} className="max-w-xs" />
                         <Input placeholder="Max Amount ($)" value={filters.amount} onChange={e => setFilters({...filters, amount: e.target.value})} className="max-w-xs" />
