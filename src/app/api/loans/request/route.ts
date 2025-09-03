@@ -2,64 +2,58 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import clientPromise from "@/lib/mongodb";
-import { loanRequestSchema } from "@/lib/schemas/loan-schema";
 
 export async function POST(request: Request) {
+  console.log("\n--- [API] /api/loans/request HIT ---");
   try {
     const session = await getServerSession(authOptions);
-
-    if (!session || !session.user || !session.user.id) {
+    if (!session?.user?.id) {
+      console.error("[API] Unauthorized: No session found.");
       return new NextResponse("Unauthorized", { status: 401 });
     }
+    console.log(`[API] Session found for user ID: ${session.user.id}`);
 
     const body = await request.json();
-    const validation = loanRequestSchema.safeParse(body);
+    console.log("[API] Received request body:", body);
 
-    if (!validation.success) {
-      return NextResponse.json({ error: "Invalid input" }, { status: 400 });
-    }
-    
-    const { amount, duration } = validation.data;
-    const userId = session.user.id;
+    const { amount, duration, creditScore, interestRate } = body;
 
-    // Call the mock ML API to get a credit score
-    // Note: This relies on NEXTAUTH_URL being set correctly in your .env.local
-    const mlApiUrl = new URL("/api/ml/risk-score", process.env.NEXTAUTH_URL);
-    const mlResponse = await fetch(mlApiUrl.toString(), {
-      method: 'POST',
-      body: JSON.stringify({ userId }), // Send user data for scoring in a real app
-      headers: { 'Content-Type': 'application/json' }
-    });
-    
-    if (!mlResponse.ok) {
-        throw new Error("Failed to fetch credit score from ML service.");
+    if (
+      typeof amount !== 'number' ||
+      typeof duration !== 'number' ||
+      typeof creditScore !== 'number' ||
+      typeof interestRate !== 'number'
+    ) {
+      console.error("[API] Validation Failed: Missing or invalid data.");
+      return NextResponse.json({ error: "Missing or invalid required loan data" }, { status: 400 });
     }
-    
-    const { score } = await mlResponse.json();
 
     const client = await clientPromise;
     const db = client.db();
-    
-    // Store the loan in a 'loans' collection
-    const newLoanRequest = {
-      userId,
+
+    const newLoan = {
+      userId: session.user.id,
       amount,
       duration,
-      creditScore: score,
-      status: "pending", // Other statuses: funded, repaid, defaulted
+      creditScore,
+      interestRate,
+      status: "pending",
       requestedAt: new Date(),
     };
+    console.log("[API] Prepared new loan document:", newLoan);
 
-    const result = await db.collection("loans").insertOne(newLoanRequest);
+    const insertResult = await db.collection("loans").insertOne(newLoan);
+    console.log("[API] MongoDB insert result:", insertResult);
 
-    return NextResponse.json({ 
-        message: "Loan request submitted successfully.",
-        loanId: result.insertedId,
-        creditScore: score,
-    });
+    if (!insertResult.acknowledged) {
+        throw new Error("Database insertion was not acknowledged.");
+    }
+
+    console.log(`[API] Successfully inserted loan with ID: ${insertResult.insertedId}`);
+    return NextResponse.json({ success: true, loanId: insertResult.insertedId });
 
   } catch (error) {
-    console.error("Loan Request API Error:", error);
+    console.error("[API] An error occurred:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

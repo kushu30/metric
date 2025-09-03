@@ -21,12 +21,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "User not found." }, { status: 404 });
     }
 
-    // Find all accounts linked to this user ID
     const accounts = await db.collection("accounts").find({ userId: userId }).toArray();
 
     const linkedAccounts = accounts.map(acc => ({
       provider: acc.provider,
-      address: acc.providerAccountId // For wallet, this is the address
+      address: acc.providerAccountId
     }));
 
     const userProfile = {
@@ -35,7 +34,7 @@ export async function GET(request: Request) {
       image: user.image,
       role: user.role,
       balance: user.balance,
-      linkedAccounts: linkedAccounts, // Add the linked accounts to the response
+      linkedAccounts: linkedAccounts,
     };
 
     return NextResponse.json(userProfile);

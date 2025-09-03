@@ -1,126 +1,130 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import LoanRequestForm from "@/components/LoanRequestForm";
-import LoanStatusChart from "@/components/LoanStatusChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import CreditScoreGauge from "@/components/CreditScoreGauge";
 import { toast } from "sonner";
-import InsurancePoolCard from "@/components/InsurancePoolCard";
-import AnimatedCreditScore from "@/components/AnimatedCreditScore"; // Import the new component
+import { Landmark, Wallet, CheckCircle } from "lucide-react";
 
 interface Loan {
   _id: string;
   amount: number;
-  duration: number;
   status: "pending" | "funded" | "repaid" | "defaulted";
   creditScore: number;
-  requestedAt: string;
+  [key: string]: any;
 }
 
-export default function Dashboard() {
-  const [creditScore, setCreditScore] = useState<number | null>(null);
-  const [loans, setLoans] = useState<Loan[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [activeLoanId, setActiveLoanId] = useState<string | null>(null);
+interface UserProfile {
+  balance: number;
+}
 
-  const fetchUserLoans = useCallback(async () => {
+export default function DashboardOverviewPage() {
+  const [loans, setLoans] = useState<Loan[]>([]);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/loans/my-loans");
-      if (!response.ok) throw new Error("Failed to fetch your loans.");
-      const data: Loan[] = await response.json();
-      setLoans(data);
-      if (data.length > 0) {
-        setCreditScore(data[0].creditScore);
-      } else {
-        setCreditScore(null);
-      }
+      const [loansResponse, profileResponse] = await Promise.all([
+        fetch('/api/loans/my-loans'),
+        fetch('/api/user/profile')
+      ]);
+
+      if (!loansResponse.ok) throw new Error("Failed to fetch loan data.");
+      if (!profileResponse.ok) throw new Error("Failed to fetch profile data.");
+
+      const loansData: Loan[] = await loansResponse.json();
+      const profileData: UserProfile = await profileResponse.json();
+
+      setLoans(loansData);
+      setProfile(profileData);
     } catch (error: any) {
-      toast.error("Error fetching loans", { description: error.message });
+      toast.error("Failed to load dashboard", { description: error.message });
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchUserLoans();
-  }, [fetchUserLoans]);
+    fetchData();
+  }, [fetchData]);
 
-  const handleLoanSubmitted = () => {
-    fetchUserLoans();
-  };
+  if (isLoading) {
+    return <div>Loading Borrower Overview...</div>;
+  }
 
-  const handleLoanAction = async (loanId: string, action: "repay" | "default") => {
-    setActiveLoanId(loanId);
-    try {
-      const response = await fetch(`/api/loans/${action}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ loanId }),
-      });
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || `${action} failed.`);
-      }
-      toast.success(`Loan successfully ${action === "repay" ? "repaid" : "marked as defaulted"}!`);
-      fetchUserLoans();
-    } catch (error: any) {
-      toast.error(`Error`, { description: error.message });
-    } finally {
-      setActiveLoanId(null);
-    }
-  };
-
-  const fundedLoans = loans.filter((loan) => loan.status === "funded");
+  const creditScore = loans.length > 0 ? loans[0].creditScore : null;
+  const activeLoanAmount = loans.filter(l => l.status === 'funded').reduce((sum, l) => sum + l.amount, 0);
+  const totalRepaidCount = loans.filter(l => l.status === 'repaid').length;
 
   return (
-    <div className="flex flex-col items-center p-4 sm:p-8">
-      <div className="w-full max-w-6xl">
-        <main className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            <LoanRequestForm onLoanSubmitted={handleLoanSubmitted} />
-            <Card>
-              <CardHeader><CardTitle>Your Active Loans</CardTitle></CardHeader>
-              <CardContent>
-                {isLoading ? <p>Loading loans...</p> : fundedLoans.length > 0 ? (
-                  <ul className="space-y-4">
-                    {fundedLoans.map((loan) => (
-                      <li key={loan._id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border rounded-lg">
-                        <div>
-                          <p className="font-semibold">${loan.amount} for {loan.duration} months</p>
-                          <p className="text-sm text-gray-500">Status: <span className="capitalize font-medium text-blue-600">{loan.status}</span></p>
-                        </div>
-                        <div className="flex space-x-2 mt-2 sm:mt-0">
-                          <Button size="sm" onClick={() => handleLoanAction(loan._id, "repay")} disabled={activeLoanId === loan._id}>
-                            {activeLoanId === loan._id ? "Processing..." : "Repay Loan"}
-                          </Button>
-                          <Button variant="destructive" size="sm" onClick={() => handleLoanAction(loan._id, "default")} disabled={activeLoanId === loan._id}>
-                            Simulate Default
-                          </Button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p>You have no active loans.</p>
-                )}
-              </CardContent>
-            </Card>
-            <LoanStatusChart loans={loans} />
-          </div>
-          <div className="space-y-8">
-            <div className="bg-white p-6 rounded-lg shadow-md flex flex-col items-center justify-center h-fit">
-              <h2 className="text-xl font-semibold mb-4 text-gray-600">Your Credit Score</h2>
-              <AnimatedCreditScore score={creditScore} />
-              <p className="text-sm text-gray-400 mt-2">
-                {creditScore ? "Based on your latest loan data." : "Submit a loan request."}
-              </p>
-            </div>
-            <InsurancePoolCard />
-          </div>
-        </main>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Borrower Overview</h1>
+        <Link href="/dashboard/request">
+            <Button>Request New Loan</Button>
+        </Link>
       </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Wallet Balance</CardTitle>
+            <Wallet className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${profile?.balance?.toLocaleString() || '0'}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Loan Amount</CardTitle>
+            <Landmark className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${activeLoanAmount.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Loans Repaid</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalRepaidCount}</div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Main Content Area */}
+       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+         <Card className="lg:col-span-1 flex flex-col items-center justify-center p-6">
+          {creditScore !== null ? (
+            <CreditScoreGauge score={creditScore} />
+          ) : (
+             <div className="text-center h-full flex flex-col justify-center">
+                <p className="text-2xl font-bold text-gray-400">N/A</p>
+                <p className="text-sm text-gray-500">No score available</p>
+            </div>
+          )}
+           <p className="text-center text-sm text-gray-500 mt-4">
+            {creditScore ? "Based on your latest loan application." : "Request a loan to get a score."}
+          </p>
+        </Card>
+        <Card className="lg:col-span-2">
+             <CardHeader>
+              <CardTitle>Loan Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>Your recent loan activity will be displayed here.</p>
+              {/* You can re-integrate the LoanStatusChart here or a list of recent loans */}
+            </CardContent>
+        </Card>
+       </div>
     </div>
   );
 }
