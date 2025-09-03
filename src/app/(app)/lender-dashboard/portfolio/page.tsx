@@ -6,16 +6,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { Loan } from "@/types/types";
 
-interface Loan {
-  _id: string;
-  amount: number;
-  duration: number;
-  interestRate: number;
-  status: "pending" | "funded" | "repaid" | "defaulted";
-  borrowerIdentifier: string;
-  fundedAt: string;
-}
+// This is a mock subscription to listen for loan updates.
+// In a real app, this would be a WebSocket or a server-sent event.
+const subscribeToLoanUpdates = (callback: (loan: Loan) => void) => {
+    const interval = setInterval(() => {
+        // Mock a repayment or default event
+        if (Math.random() > 0.95) {
+            callback({ _id: 'mock_id', status: 'repaid', borrowerIdentifier: 'Mock Borrower' } as Loan);
+        }
+    }, 5000);
+    return () => clearInterval(interval);
+};
+
 
 export default function LenderPortfolioPage() {
   const [fundedLoans, setFundedLoans] = useState<Loan[]>([]);
@@ -37,6 +41,13 @@ export default function LenderPortfolioPage() {
 
   useEffect(() => {
     fetchFundedLoans();
+    const unsubscribe = subscribeToLoanUpdates((updatedLoan) => {
+        toast.info(`Update received for ${updatedLoan.borrowerIdentifier}.`, {
+            description: `Status changed to ${updatedLoan.status}. Refreshing portfolio...`,
+        });
+        fetchFundedLoans();
+    });
+    return unsubscribe;
   }, [fetchFundedLoans]);
 
   const getStatusBadge = (status: Loan['status']) => {
@@ -76,7 +87,7 @@ export default function LenderPortfolioPage() {
               <TableBody>
                 {fundedLoans.map((loan) => (
                   <TableRow key={loan._id}>
-                    <TableCell>{new Date(loan.fundedAt).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(loan.fundedAt!).toLocaleDateString()}</TableCell>
                     <TableCell>{loan.borrowerIdentifier}</TableCell>
                     <TableCell>${loan.amount.toLocaleString()}</TableCell>
                     <TableCell>{loan.interestRate}%</TableCell>
