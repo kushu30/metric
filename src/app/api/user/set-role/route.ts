@@ -20,13 +20,14 @@ export async function POST(request: Request) {
     const client = await clientPromise;
     const db = client.db();
     
-    // 1. Update the user's role
+    // 1. Update the user's role and onboarding status
     const userUpdateResult = await db.collection("users").updateOne(
       { _id: new ObjectId(session.user.id) },
       { 
         $set: { 
           role: role,
           balance: 10000, // Give user a mock starting balance of $10,000
+          hasOnboarded: true, // Explicitly set the onboarding flag
         },
         $setOnInsert: { createdAt: new Date() }
       }
