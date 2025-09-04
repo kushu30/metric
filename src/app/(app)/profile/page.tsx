@@ -11,6 +11,8 @@ import { SiweMessage } from "siwe";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
 import { CheckCircle, ExternalLink } from "lucide-react";
+import Image from "next/image"; // Import the Image component
+
 
 interface LinkedAccount {
   provider: string;
@@ -138,7 +140,7 @@ export default function ProfilePage() {
           {isLoading ? <p>Loading profile...</p> : profile ? (
             <div className="space-y-8">
               <div className="flex items-center space-x-4">
-                <img src={profile.image || `https://avatar.vercel.sh/${profile.email}`} alt="Profile" className="w-16 h-16 rounded-full" />
+<Image src={profile.image || `https://avatar.vercel.sh/${profile.email}`} alt="Profile" width={64} height={64} className="w-16 h-16 rounded-full" />
                 <div>
                   <h2 className="text-xl font-semibold text-white">{profile.name || "User"}</h2>
                   <p className="text-sm text-white/60">{profile.email}</p>

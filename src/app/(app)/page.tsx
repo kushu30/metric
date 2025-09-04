@@ -1,3 +1,4 @@
+// src/app/(app)/page.tsx
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -26,10 +27,9 @@ export default function DashboardOverviewPage() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      // In a real app, you would fetch all this data from different API endpoints
-      // For now, we continue with mock data for the overview
+      // Corrected the status to be a valid Loan['status'] type
       const MOCK_DATA = {
-          loans: [{ _id: "1", amount: 5000, status: "funded" }],
+          loans: [{ _id: "1", amount: 5000, status: "funded" as const }],
           profile: { balance: 8500 },
           creditScore: 82,
       };
